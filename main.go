@@ -1,17 +1,17 @@
 package main
 
 import (
-	"io"
-	"os"
 	"fmt"
+	"html/template"
+	"io"
 	"log"
 	"net/http"
-	"html/template"
+	"os"
 )
 
 type Page struct {
-	Title  string
-	Body []byte
+	Title string
+	Body  []byte
 }
 
 func (p *Page) save() error {
@@ -23,11 +23,11 @@ func (p *Page) save() error {
 	}
 	defer file.Close()
 	// 与えられた文字列をファイルに書き込みます。戻り値は、書き込んだバイト数と書き込み中に起きたエラーです。
-	_, err = io.WriteString(file,string(p.Body))
+	_, err = io.WriteString(file, string(p.Body))
 	return err
 }
 
-func loadPage (title string)(*Page,error){
+func loadPage(title string) (*Page, error) {
 	fmt.Println("loadPage")
 
 	filename := title + ".txt"
@@ -46,9 +46,14 @@ func loadPage (title string)(*Page,error){
 	return &Page{Title: title, Body: body}, nil
 }
 
+var templates = template.Must(template.ParseFiles("edit.html", "view.html"))
+
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	t, _ := template.ParseFiles(tmpl + ".html")
-	t.Execute(w, p)
+	err := templates.ExecuteTemplate(w, tmpl+".html", p)
+	if err != nil {
+		fmt.Println("renderTemplate err")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
